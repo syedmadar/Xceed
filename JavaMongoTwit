@@ -1,0 +1,48 @@
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLConnection;
+
+import com.mongodb.BasicDBList;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBObject;
+import com.mongodb.Mongo;
+import com.mongodb.util.JSON;
+
+public class Main {
+    
+    public static void main(String args[])throws Exception {
+        System.setProperty("java.net.useSystemProxies", "true");
+        
+        //Connecting to MongoDB
+        Mongo m = new Mongo();
+        DB db = m.getDB("twitter");
+        DBCollection coll = db.getCollection("tweets");
+
+        //Fetching tweets from Twitter
+        String urlstr = "http://search.twitter.com/" +
+                "search.json?q=mongodb";
+        URL url = new URL(urlstr);
+        URLConnection con = url.openConnection();
+        BufferedReader br = new BufferedReader(
+                new InputStreamReader(con.getInputStream()));
+        int c;
+        StringBuffer content = new StringBuffer();
+        while((c=br.read())!=-1) {
+            content.append((char)c);
+        }
+        
+        //Inserting tweets to database        
+        BasicDBObject res = (BasicDBObject)
+                JSON.parse(content.toString());
+        BasicDBList list;
+        list = (BasicDBList)res.get("results");
+        for(Object obj : list) {
+            coll.insert((DBObject)obj);
+        }
+        m.close();
+    }
+
+}
